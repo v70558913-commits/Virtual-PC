@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#030817">
+<title>Virtual PC OS — V1.4</title>
+<style>
+:root{--blue:#078cff;--cyan:#19d9ff}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#020611;color:#eef8ff;font-family:Arial,Helvetica,sans-serif}
+body{touch-action:manipulation}
+#pc{width:100vw;height:100dvh;display:grid;grid-template-columns: minmax(0,1fr) minmax(0,1fr);padding:5px;background:linear-gradient(135deg,#102d58,#020611 40%,#0b2c5b)}
+.left{min-width:0;min-height:0;display:grid;grid-template-rows:56% 44%;gap:5px;padding-right:3px}
+.panel,.monitor{border:1px solid #168cff;border-radius:13px;background:linear-gradient(145deg,#071a37,#020713);box-shadow:inset 0 0 14px #006dff66,0 0 9px #008cff88;overflow:hidden;min-height:0;position:relative}
+.panel-head,.monitor-head{height:34px;display:flex;align-items:center;gap:9px;padding:0 10px;border-bottom:1px solid #087cff;background:#06142c;color:#21dfff;font-weight:bold;font-size:clamp(12px,2vw,18px);text-shadow:0 0 8px #00aaff;flex-shrink:0}
+.panel-head .symbol{font-size:19px}
+.keyboard-wrap{height:calc(100% - 34px);display:grid;grid-template-rows:repeat(6,minmax(0,1fr));gap:4px;padding:7px}
+.keyrow{display:flex;gap:4px;min-height:0;min-width:0}
+.key{flex:1 1 0;border:1px solid #078cff;border-radius:6px;background:linear-gradient(180deg,#15365d,#030b1b);color:#f3f9ff;font-size:clamp(7px,1.25vw,13px);font-weight:600;padding:0 2px;min-width:0;min-height:0;box-shadow:inset 0 0 5px #008cff55,0 0 4px #007bff44;touch-action:manipulation;overflow:hidden;white-space:nowrap}
+.key:active,.key.active{background:#0758a5;box-shadow:0 0 10px #00c8ff}
+.key.span2{flex:1.8 1 0}
+.key.space{flex:4 1 0}
+.touchpad-area{height:calc(100% - 34px);padding:7px;display:grid;grid-template-rows:1fr 34px;gap:5px}
+.pad{border:1px solid #078cff;border-radius:9px;background:radial-gradient(ellipse at 50% 40%,#0a2850,#020916 75%);position:relative;overflow:hidden;touch-action:none}
+.pad:after{content:"";position:absolute;inset:0;background:linear-gradient(120deg,transparent 40%,#008cff12 50%,transparent 60%);pointer-events:none}
+.clicks{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.clicks button{background:#061a35;color:#eaf8ff;border:1px solid #078cff;border-radius:6px;font-size:clamp(9px,1.4vw,13px)}
+.monitor{margin-left:3px;display:grid;grid-template-rows:34px minmax(0,1fr) 35px}
+.monitor-head{justify-content:space-between}
+.monitor-controls{display:flex;gap:8px;color:#19d9ff;font-size:20px}
+.desktop{position:relative;isolation:isolate;overflow:hidden;background:radial-gradient(ellipse at 70% 30%,#075bd1 0,#07317d 35%,#020a20 80%);min-height:0}
+.desktop:before{content:"";position:absolute;width:70%;height:90%;right:-10%;top:8%;border:18px solid #087fff55;border-radius:45% 55% 50% 35%;transform:rotate(-28deg);filter:drop-shadow(0 0 20px #008cff);opacity:.65;pointer-events:none}
+.desktop-icons{position:absolute;top:12px;left:10px;display:grid;grid-template-columns:repeat(2,minmax(48px,68px));gap:9px 6px;z-index:1}
+.app-icon{border:1px solid transparent;background:transparent;color:white;border-radius:7px;padding:5px 2px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:clamp(8px,1.3vw,12px);text-align:center;min-width:0}
+.app-icon:active,.app-icon.selected{background:#147bdf66;border-color:#55baff}
+.app-icon .ico{font-size:clamp(19px,3.5vw,31px);filter:drop-shadow(0 0 5px #159dff)}
+.brand{position:absolute;left:57%;top:48%;transform:translate(-50%,-50%);text-align:center;width:75%;z-index:0;text-shadow:0 0 14px #00aaff;pointer-events:none}
+.brand strong{font-size:clamp(17px,3vw,32px);color:#c8f5ff}
+.brand small{display:block;margin-top:7px;font-size:clamp(8px,1.3vw,13px);color:#d5eaff}
+.taskbar{display:flex;align-items:center;gap:clamp(4px,1vw,10px);padding:0 7px;background:#04152fef;border-top:1px solid #0c8cff;min-width:0}
+.start{font-size:20px;color:#12cfff;background:none;border:0;padding:2px}
+.search{min-width:0;width:34%;height:25px;border:1px solid #1769ba;border-radius:15px;background:#0a2850;color:white;padding:0 9px;font-size:clamp(8px,1.2vw,12px)}
+.pin{border:0;background:none;color:#d8efff;font-size:clamp(13px,2vw,20px);padding:2px}
+.status{margin-left:auto;white-space:nowrap;font-size:clamp(7px,1.1vw,11px);text-align:right;color:#e4f4ff}
+.window{position:absolute;z-index:5;left:12%;top:14%;width:76%;height:66%;background:#07172df5;border:1px solid #1aaaff;border-radius:9px;box-shadow:0 0 18px #007bff88;display:none;overflow:hidden;resize:both;min-width:140px;min-height:100px}
+.window.show{display:flex;flex-direction:column}
+.winbar{height:30px;min-height:30px;background:#0a2a52;border-bottom:1px solid #168cff;display:flex;align-items:center;justify-content:space-between;padding:0 8px;font-size:12px;color:#bceeff;touch-action:none}
+.winbar button{background:none;border:0;color:white;font-size:18px}
+.winbody{padding:10px;overflow:auto;font-size:12px;flex:1}
+.winbody input,.winbody textarea{width:100%;background:#020b19;border:1px solid #168cff;border-radius:5px;color:white;padding:7px;margin:4px 0}
+.winbody button{background:#0759a5;color:white;border:1px solid #18aaff;border-radius:5px;padding:6px;margin:3px}
+.winbody p{line-height:1.5}
+#screenCursor{position:fixed;left:50vw;top:50vh;z-index:1000000!important;color:#fff;font-size:28px;font-weight:bold;line-height:1;text-shadow:0 0 4px #00d9ff,0 0 12px #007bff;pointer-events:none;transform:translate(-50%,-50%);filter:drop-shadow(0 0 3px #000)}
+#power{position:absolute;right:7px;top:7px;z-index:30;border:1px solid #16aaff;border-radius:50%;background:#06152c;color:#39dfff;width:28px;height:28px;font-size:16px}
+#offscreen{position:absolute;inset:0;z-index:25;background:#01040b;display:none;align-items:center;justify-content:center;text-align:center}
+#offscreen.show{display:flex}
+.boot{font-size:14px;color:#4ddcff;text-shadow:0 0 12px #08f}
+.lightMode .desktop{background:linear-gradient(135deg,#a8d9ff,#2468b9)}
+@media(max-height:380px){.panel-head,.monitor-head{height:27px}.keyboard-wrap{height:calc(100% - 27px);gap:2px;padding:3px}.keyrow{gap:2px}.touchpad-area{height:calc(100% - 27px);grid-template-rows:1fr 25px;padding:4px}.monitor{grid-template-rows:27px minmax(0,1fr) 27px}.desktop-icons{top:5px;gap:3px}.app-icon{padding:2px}.taskbar{padding:0 4px}.panel-head,.monitor-head{font-size:12px}}
+</style>
+</head>
+<body>
+<div id="pc">
+  <section class="left">
+    <div class="panel">
+      <div class="panel-head"><span class="symbol">▦</span> Teclado</div>
+      <div class="keyboard-wrap" id="keyboard"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><span class="symbol">◉</span> Touchpad</div>
+      <div class="touchpad-area">
+        <div class="pad" id="pad" aria-label="Área de controle do cursor"></div>
+        <div class="clicks"><button id="leftClick">◉ Clique Esquerdo</button><button id="rightClick">◉ Clique Direito</button></div>
+      </div>
+    </div>
+  </section>
+  <section class="monitor" id="monitor">
+    <div class="monitor-head"><span>▦ Virtual PC OS</span><span class="monitor-controls">━ □ ×</span></div>
+    <div class="desktop" id="desktop">
+      <div class="desktop-icons">
+        <button class="app-icon" data-app="Meu PC"><span class="ico">🖥️</span>Meu PC</button>
+        <button class="app-icon" data-app="Lixeira"><span class="ico">🗑️</span>Lixeira</button>
+        <button class="app-icon" data-app="Navegador"><span class="ico">🌐</span>Navegador</button>
+        <button class="app-icon" data-app="Arquivos"><span class="ico">📁</span>Arquivos</button>
+        <button class="app-icon" data-app="Terminal"><span class="ico">⌨️</span>Terminal</button>
+        <button class="app-icon" data-app="Configurações"><span class="ico">⚙️</span>Configurações</button>
+        <button class="app-icon" data-app="Jogos"><span class="ico">🎮</span>Jogos</button>
+      </div>
+      <div class="brand"><strong>Virtual PC OS</strong><small>Seu computador, agora no celular!</small></div>
+      <div class="window" id="window">
+        <div class="winbar" id="winbar"><span id="winTitle">Aplicativo</span><button id="closeWin">×</button></div>
+        <div class="winbody" id="winBody"></div>
+      </div>
+    </div>
+    <div class="taskbar">
+      <button class="start" id="startBtn">▦</button>
+      <input class="search" id="search" placeholder="Pesquisar...">
+      <button class="pin" data-app="Arquivos">📁</button><button class="pin" data-app="Navegador">🌐</button><button class="pin" data-app="Configurações">⚙️</button>
+      <div class="status">◉ Wi‑Fi　🔊　▰<br><span id="clock"></span></div>
+    </div>
+  </section>
+</div>
+<button id="power" title="Ligar/desligar">⏻</button>
+<div id="offscreen"><div class="boot">VIRTUAL PC OS<br><br><span id="powerText">Sistema desligado</span></div></div>
+<span id="screenCursor" aria-hidden="true">↑</span>
+<script>
+const rows=[
+ ["Esc","F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F12","Del"],
+ ["`","1","2","3","4","5","6","7","8","9","0","-","=","Backspace"],
+ ["Tab","Q","W","E","R","T","Y","U","I","O","P","[","]","\\\\"],
+ ["Caps","A","S","D","F","G","H","J","K","L",";","'","Enter"],
+ ["Shift","Z","X","C","V","B","N","M",",",".","/","Shift"],
+ ["Ctrl","Fn","Win","Alt","Space","Alt","Menu","Ctrl","←","↑","↓","→"]
+];
+const keyboard=document.getElementById('keyboard');
+let focused=document.getElementById('search');
+function pressKey(k){
+ if(k==="Space") k=" ";
+ if(k==="Backspace"){if(focused && typeof focused.value==="string"){const a=focused.selectionStart??focused.value.length,b=focused.selectionEnd??a;focused.setRangeText("",Math.max(0,a-1),b,"end");focused.dispatchEvent(new Event('input',{bubbles:true}));}return}
+ if(k==="Enter"){if(focused && typeof focused.value==="string"){focused.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true}));focused.dispatchEvent(new Event('change',{bubbles:true}));}return}
+ if(k==="Tab"){if(focused && typeof focused.value==="string")focused.setRangeText("    ",focused.selectionStart??focused.value.length,focused.selectionEnd??focused.value.length,"end");return}
+ if(["Shift","Ctrl","Alt","Fn","Win","Menu","Caps","Esc","Del","←","↑","↓","→"].includes(k))return;
+ if(focused && typeof focused.value==="string"){
+  const a=focused.selectionStart??focused.value.length,b=focused.selectionEnd??a;
+  focused.setRangeText(k,a,b,"end");focused.dispatchEvent(new Event('input',{bubbles:true}));
+ }
+}
+rows.forEach((row,ri)=>{
+ const r=document.createElement('div');r.className='keyrow';
+ row.forEach((k,ki)=>{
+  const b=document.createElement('button');b.className='key';
+  if(k==='Backspace')b.style.flex='2.0 1 0';
+  if(k==='Tab'||k==='Caps')b.style.flex='1.6 1 0';
+  if(k==='Enter')b.style.flex='1.8 1 0';
+  if(k==='Shift')b.style.flex='2.0 1 0';
+  if(k==='Space')b.style.flex='4.5 1 0';
+  if(['Ctrl','Alt','Fn','Win','Menu'].includes(k))b.style.flex='1.25 1 0';
+  if(["Backspace","Enter","Caps","Tab"].includes(k))b.classList.add('span2');
+  if(k==="Space")b.classList.add('space');
+  b.textContent=k==="Space"?"":k;b.setAttribute('aria-label',k);
+  b.addEventListener('pointerdown',e=>{e.preventDefault();pressKey(k);b.classList.add('active');setTimeout(()=>b.classList.remove('active'),120)});
+  r.appendChild(b);
+ });keyboard.appendChild(r);
+});
+document.addEventListener('focusin',e=>{if(e.target.matches('input,textarea'))focused=e.target});
+document.addEventListener('keydown',e=>{
+ if(e.target.matches('input,textarea')){focused=e.target;return}
+ if(e.key.length===1)pressKey(e.key);else if(e.key==='Backspace')pressKey('Backspace');
+});
+const pad=document.getElementById('pad'),screenCursor=document.getElementById('screenCursor'),desktop=document.getElementById('desktop'),monitor=document.getElementById('monitor');
+let padDown=false,screenX=.5,screenY=.5;
+function setScreenCursor(nx,ny){
+ screenX=Math.max(0,Math.min(1,nx));screenY=Math.max(0,Math.min(1,ny));
+ const r=monitor.getBoundingClientRect();
+ screenCursor.style.left=(r.left+screenX*r.width)+'px';screenCursor.style.top=(r.top+screenY*r.height)+'px';
+}
+function movePad(e){
+ const r=pad.getBoundingClientRect();const x=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));const y=Math.max(0,Math.min(1,(e.clientY-r.top)/r.height));
+ setScreenCursor(x,y);
+}
+pad.addEventListener('pointerdown',e=>{padDown=true;pad.setPointerCapture(e.pointerId);movePad(e)});
+pad.addEventListener('pointermove',e=>{if(padDown)movePad(e)});
+pad.addEventListener('pointerup',()=>padDown=false);pad.addEventListener('pointercancel',()=>padDown=false);
+function screenClick(button=0){
+ const r=monitor.getBoundingClientRect(),x=r.left+screenX*r.width,y=r.top+screenY*r.height;
+ const target=document.elementFromPoint(x,y);
+ if(target && target!==screenCursor && !screenCursor.contains(target)){
+  if(button===2){openApp('Menu de contexto','<h3>Menu de contexto</h3><button data-action="refresh">Atualizar área de trabalho</button><button data-action="close">Fechar</button>');return}
+  target.click();
+ }
+}
+document.getElementById('leftClick').onclick=()=>screenClick(0);
+document.getElementById('rightClick').onclick=()=>screenClick(2);
+desktop.addEventListener('click',e=>{if(e.target===desktop||e.target.classList.contains('brand'))document.querySelectorAll('.app-icon').forEach(x=>x.classList.remove('selected'))});
+const win=document.getElementById('window'),winTitle=document.getElementById('winTitle'),winBody=document.getElementById('winBody'),winbar=document.getElementById('winbar');
+function closeWindow(){win.classList.remove('show')}
+document.getElementById('closeWin').onclick=closeWindow;
+function openApp(name,html){
+ winTitle.textContent=name;winBody.innerHTML=html||`<h3>${name}</h3><p>Bem-vindo ao ${name} do Virtual PC OS.</p>`;
+ win.classList.add('show');
+}
+function appContent(name){
+ const content={
+ "Meu PC":"<h3>Este computador</h3><p>💽 Disco local (C:) — 128 GB</p><p>📂 Documentos　📂 Downloads　📂 Imagens</p>",
+ "Lixeira":"<h3>Lixeira</h3><p>A lixeira está vazia.</p>",
+ "Navegador":"<h3>Navegador virtual</h3><input id='webAddress' placeholder='Digite um endereço ou pesquisa'><button id='goWeb'>Ir</button><div id='webResult'><p>Digite um endereço para abrir. Nesta versão, a janela é uma interface demonstrativa.</p></div>",
+ "Arquivos":"<h3>Explorador de arquivos</h3><p>📁 Documentos</p><p>📁 Downloads</p><p>📁 Imagens</p><p>📁 Área de trabalho</p>",
+ "Terminal":"<h3>Terminal</h3><div style='background:#01050b;padding:8px;color:#61ff9a;font-family:monospace'>VirtualPC@user:~$ <input id='terminalInput' placeholder='Digite help e pressione Enter'></div><div id='terminalOutput'>Terminal de demonstração iniciado.</div>",
+ "Configurações":"<h3>Configurações</h3><p>🎨 Aparência　🔊 Som</p><p>🖥️ Tela　⌨️ Teclado</p><button id='themeBtn'>Alternar tema</button>",
+ "Jogos":"<h3>Jogos</h3><p>🎮 Área de jogos em preparação.</p>"
+ };
+ return content[name]||null;
+}
+function launch(name){
+ document.querySelectorAll('.app-icon').forEach(x=>x.classList.toggle('selected',x.dataset.app===name));
+ openApp(name,appContent(name));
+ if(name==='Navegador'){
+  const go=()=>{const val=document.getElementById('webAddress')?.value||'';const out=document.getElementById('webResult');if(out)out.innerHTML='<p>Pesquisa/endereço recebido: '+val.replace(/[<>&"]/g,'')+'</p><p>Integração de navegação real será adicionada numa próxima etapa.</p>'};
+  document.getElementById('goWeb').onclick=go;document.getElementById('webAddress').addEventListener('keydown',e=>{if(e.key==='Enter')go()});
+ }
+ if(name==='Terminal'){
+  const inp=document.getElementById('terminalInput');inp.addEventListener('keydown',e=>{if(e.key==='Enter'){const cmd=inp.value.trim();const out=document.getElementById('terminalOutput');const known={help:'Comandos: help, date, about, clear',date:new Date().toLocaleString('pt-BR'),about:'Virtual PC OS — terminal demonstrativo',clear:''};out.innerHTML=(known[cmd]??'Comando não reconhecido: '+cmd).replace(/[<>&"]/g,'');inp.value=''}});
+ }
+ if(name==='Configurações')document.getElementById('themeBtn').onclick=()=>document.body.classList.toggle('lightMode');
+}
+document.querySelectorAll('[data-app]').forEach(b=>b.addEventListener('click',()=>launch(b.dataset.app)));
+document.getElementById('startBtn').onclick=()=>openApp('Menu iniciar','<h3>Menu iniciar</h3><button data-startapp="Meu PC">Meu PC</button><button data-startapp="Navegador">Navegador</button><button data-startapp="Arquivos">Arquivos</button><button data-startapp="Configurações">Configurações</button>');
+winBody.addEventListener('click',e=>{const b=e.target.closest('[data-startapp]');if(b)launch(b.dataset.startapp);if(e.target.dataset.action==='close')closeWindow()});
+document.getElementById('search').addEventListener('keydown',e=>{if(e.key==='Enter'){const q=e.target.value;openApp('Pesquisa','<h3>Pesquisa</h3><p>Você pesquisou: '+q.replace(/[<>&"]/g,'')+'</p>')}});
+let dragWin=false,dragDX=0,dragDY=0;
+winbar.addEventListener('pointerdown',e=>{if(e.target.tagName==='BUTTON')return;dragWin=true;const r=win.getBoundingClientRect();dragDX=e.clientX-r.left;dragDY=e.clientY-r.top;winbar.setPointerCapture(e.pointerId)});
+winbar.addEventListener('pointermove',e=>{if(!dragWin)return;const r=desktop.getBoundingClientRect();win.style.left=Math.max(0,Math.min(r.width-win.offsetWidth,e.clientX-r.left-dragDX))+'px';win.style.top=Math.max(0,Math.min(r.height-win.offsetHeight,e.clientY-r.top-dragDY))+'px'});
+winbar.addEventListener('pointerup',()=>dragWin=false);winbar.addEventListener('pointercancel',()=>dragWin=false);
+function updateClock(){const d=new Date();document.getElementById('clock').textContent=d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+' · '+d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}
+updateClock();setInterval(updateClock,10000);
+let on=true;document.getElementById('power').onclick=()=>{on=!on;document.getElementById('offscreen').classList.toggle('show',!on);document.getElementById('powerText').textContent=on?'Inicializando sistema...':'Sistema desligado';if(on)setTimeout(()=>document.getElementById('powerText').textContent='Sistema iniciado',900)};
+setScreenCursor(.5,.5);
+window.addEventListener("resize",()=>setScreenCursor(screenX,screenY));
+window.addEventListener('resize',()=>setScreenCursor(screenX,screenY));
+</script>
+</body>
+</html>
